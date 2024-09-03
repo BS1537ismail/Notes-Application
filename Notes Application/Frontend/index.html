@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Document</title>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-left">
+            <div class="navbar-brand">My Notes Application</div>
+            <ul class="navbar-links">
+                <li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Contact</a></li>
+            </ul>
+        </div>
+        <div class="navbar-right">
+            <button class="navbar-button">Login</button>
+            <button class="navbar-button">Register</button>
+        </div>
+    </nav>
+
+    <div class="top-section">
+        <div class="notes-sidebar">
+            <input type="text" id="title" placeholder="Add Title">
+            <textarea id="description" placeholder="Add Description"></textarea>
+            <button id="btnSave">Save</button>
+            <button id="btnDelete" class="btn-delete hidden">Delete</button>
+        </div>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search by Title">
+            <button id="btnSearch">Search</button>
+        </div>
+    </div>
+
+    <div class="notes_container" id="notes_container"></div>
+    <div class="pagination" id="pagination">
+        <button id="prevPage" disabled>Previous</button>
+        <span id="pageNumber">Page 1</span>
+        <button id="nextPage">Next</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

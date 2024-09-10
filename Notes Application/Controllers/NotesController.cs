@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Notes_Application.Models.Data;
 using Notes_Application.Models.Entities;
@@ -17,14 +16,39 @@ namespace Notes_Application.Controllers
             this.context = context;
         }
         [HttpGet]
-        public async Task<IActionResult> GetAllNotes()
+        public async Task<IActionResult> GetAllNotes(string? search, int pageNumber = 1, int pageSize = 8)
         {
-            var data = await context.Notes.ToListAsync();
-            return Ok(data);
+            var notesQuery = context.Notes.AsQueryable();
+
+            // Apply search filter if provided
+            if (!string.IsNullOrEmpty(search))
+            {
+                search = search.ToLower();
+                notesQuery = notesQuery.Where(n =>
+                    n.Title.ToLower().Contains(search) ||
+                    n.Description.ToLower().Contains(search));
+            }
+
+            // Apply pagination
+            var totalRecords = await notesQuery.CountAsync(); 
+            var paginatedNotes = await notesQuery
+                .Skip((pageNumber - 1) * pageSize) 
+                .Take(pageSize)  
+                .ToListAsync();
+
+            return Ok(new
+            {
+                totalRecords,
+                pageNumber,
+                pageSize,
+                data = paginatedNotes
+            });
         }
+
+
         [HttpGet]
         [Route("{id:Guid}")]
-        [ActionName("GetNoteById")]
+        //[ActionName("GetNoteById")]
         public async Task<IActionResult> GetNoteById([FromRoute] Guid id)
         {
             var data = await context.Notes.FindAsync(id);

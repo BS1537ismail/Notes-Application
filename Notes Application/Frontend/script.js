@@ -8,10 +8,15 @@ const searchInput = document.getElementById('searchInput');
 const searchButton = document.getElementById('btnSearch');
 
 
+
 function clearForm() {
+    btnSave.innerHTML = 'Save';
     titleInput.value = '';
     descriptionInput.value = '';
     deleteButton.classList.add('hidden');
+    saveButton.removeAttribute('data-id');
+    deleteButton.removeAttribute('data-id');
+    currentPage = 1;
 }
 
 function displayNoteInForm(note) {
@@ -22,9 +27,8 @@ function displayNoteInForm(note) {
     saveButton.setAttribute('data-id', note.id);
 }
 
-backButton.addEventListener('click', function(event){
-    btnSave.innerHTML = 'Save';
-    event.preventDefault(); 
+backButton.addEventListener('click', function (event) {
+    event.preventDefault();
     clearForm();
 })
 
@@ -39,7 +43,7 @@ function populateForm(id) {
 }
 
 let currentPage = 1;
-let pageSize = 8;
+let pageSize = 17;
 
 //  displayNotes to include pagination data
 function displayNotes(data) {
@@ -56,7 +60,8 @@ function displayNotes(data) {
     noteContainer.innerHTML = tempData;
 
     // Update pagination UI
-    document.getElementById('pageNumber').innerText = `Page ${data.pageNumber}`;
+    let TotalPages = Math.ceil(data.totalRecords / data.pageSize);
+    document.getElementById('pageNumber').innerText = `Page ${TotalPages} of ${data.pageNumber}`;
     document.getElementById('prevPage').disabled = data.pageNumber === 1;
     document.getElementById('nextPage').disabled = (data.pageNumber * data.pageSize) >= data.totalRecords;
 
@@ -65,6 +70,7 @@ function displayNotes(data) {
         note.addEventListener('click', function () {
             saveButton.innerHTML = 'Update';
             const noteId = note.dataset.id;
+            console.log(noteId);
             populateForm(noteId);
         });
     });
@@ -81,7 +87,7 @@ function getAllNotes(search = '', page = 1) {
         .then(response => response.json())
         .then(data => {
             if (data.data) {
-                displayNotes(data);  // Data will now contain pagination information
+                displayNotes(data);
             } else {
                 console.error("Unexpected API response format:", data);
             }
@@ -115,7 +121,7 @@ searchButton.addEventListener('click', function () {
 });
 
 
-saveButton.addEventListener('click', function() {
+saveButton.addEventListener('click', function () {
     const id = saveButton.dataset.id;
     if (id) {
         updateNote(id, titleInput.value, descriptionInput.value);
@@ -139,11 +145,11 @@ function addNote(title, description) {
             "content-type": "application/json"
         }
     })
-    .then(data => data.json())
-    .then(response => {
-        clearForm();
-        getAllNotes();
-    });
+        .then(data => data.json())
+        .then(response => {
+            clearForm();
+            getAllNotes();
+        });
 }
 
 // Update Note
@@ -153,7 +159,7 @@ function updateNote(id, title, description) {
         description: description,
         isVisible: true
     };
-    
+
     fetch(`https://localhost:7090/api/Notes/${id}`, {
         method: 'PUT',
         body: JSON.stringify(body),
@@ -161,11 +167,11 @@ function updateNote(id, title, description) {
             "content-type": "application/json"
         }
     })
-    .then(data => data.json())
-    .then(response => {
-        clearForm();
-        getAllNotes();
-    });
+        .then(data => data.json())
+        .then(response => {
+            clearForm();
+            getAllNotes();
+        });
 }
 
 // Delete Note
@@ -176,13 +182,13 @@ function deleteNote(id) {
             "content-type": "application/json"
         }
     })
-    .then(response => {
-        clearForm();
-        getAllNotes();
-    });
+        .then(response => {
+            clearForm();
+            getAllNotes();
+        });
 }
 
-deleteButton.addEventListener('click', function() {
+deleteButton.addEventListener('click', function () {
     const id = deleteButton.dataset.id;
     btnSave.innerHTML = 'Save'
     deleteNote(id);

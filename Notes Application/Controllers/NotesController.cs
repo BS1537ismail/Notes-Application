@@ -20,7 +20,6 @@ namespace Notes_Application.Controllers
         {
             var notesQuery = context.Notes.AsQueryable();
 
-            // Apply search filter if provided
             if (!string.IsNullOrEmpty(search))
             {
                 search = search.ToLower();
@@ -29,11 +28,11 @@ namespace Notes_Application.Controllers
                     n.Description.ToLower().Contains(search));
             }
 
-            // Apply pagination
             var totalRecords = await notesQuery.CountAsync(); 
             var paginatedNotes = await notesQuery
                 .Skip((pageNumber - 1) * pageSize) 
-                .Take(pageSize)  
+                .Take(pageSize) 
+                .OrderByDescending(n => n.Id)
                 .ToListAsync();
 
             return Ok(new
@@ -58,7 +57,7 @@ namespace Notes_Application.Controllers
         [HttpPost]
         public async Task<IActionResult> AddNote(Note note)
         {
-            if (ModelState.IsValid)
+            if (ModelState.IsValid && note.Title != "" && note.Description != "")
             {
                 note.Id = Guid.NewGuid();
                 await context.AddAsync(note);

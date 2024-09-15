@@ -17,6 +17,7 @@ function clearForm() {
     saveButton.removeAttribute('data-id');
     deleteButton.removeAttribute('data-id');
     currentPage = 1;
+    lastRecordId = null;
 }
 
 function displayNoteInForm(note) {
@@ -43,7 +44,11 @@ function populateForm(id) {
 }
 
 let currentPage = 1;
-let pageSize = 17;
+let pageSize = 5;
+let firstRecordId = null;
+let lastRecordId = null;
+let pageHistory = [];
+let isPrevious = 0;
 
 //  displayNotes to include pagination data
 function displayNotes(data) {
@@ -61,26 +66,62 @@ function displayNotes(data) {
 
     // Update pagination UI
     let TotalPages = Math.ceil(data.totalRecords / data.pageSize);
-    document.getElementById('pageNumber').innerText = `Page ${TotalPages} of ${data.pageNumber}`;
-    document.getElementById('prevPage').disabled = data.pageNumber === 1;
-    document.getElementById('nextPage').disabled = (data.pageNumber * data.pageSize) >= data.totalRecords;
+    document.getElementById('pageNumber').innerText = `Page ${TotalPages} of ${currentPage}`;
+
+    document.getElementById('prevPage').disabled = currentPage === 1;
+    document.getElementById('nextPage').disabled = (currentPage * data.pageSize) >= data.totalRecords;
+
+
+
+    // Store the last record ID of the current page
+    if (data.data.length) {
+        if (isPrevious === 0) {
+            pageHistory.push({
+                firstRecordId: data.data[0].id,
+                lastRecordId: data.data[data.data.length - 1].id
+            });
+            // console.log(isPrevious);
+            //console.log(pageHistory.length);
+        }
+        else {
+            // console.log(isPrevious);
+            pageHistory.pop();
+            //console.log(pageHistory.length);
+        }
+        firstRecordId = pageHistory[pageHistory.length - 1].firstRecordId;
+        lastRecordId = pageHistory[pageHistory.length - 1].lastRecordId;
+
+        console.log(firstRecordId);
+        console.log(lastRecordId);
+    }
 
     // Add event listeners to each note
     document.querySelectorAll('.note').forEach(note => {
         note.addEventListener('click', function () {
             saveButton.innerHTML = 'Update';
             const noteId = note.dataset.id;
-            console.log(noteId);
+            //console.log(noteId);
             populateForm(noteId);
         });
     });
 }
 
 // Get notes with pagination
-function getAllNotes(search = '', page = 1) {
-    let url = `https://localhost:7090/api/Notes?pageNumber=${page}&pageSize=${pageSize}`;
+function getAllNotes(search = '', lastRecordId = null, firstRecordId = null, isPrevious = 0) {
+
+    let url = `https://localhost:7090/api/Notes?pageSize=${pageSize}`;
+
     if (search) {
         url += `&search=${encodeURIComponent(search)}`;
+    }
+    if (lastRecordId && !isPrevious) {
+        url += `&lastRecordId=${lastRecordId}`;
+    }
+    if (firstRecordId && isPrevious) {
+        url += `&firstRecordId=${firstRecordId}`;
+    }
+    if (isPrevious) {
+        url += `&isPrevious=${isPrevious}`;
     }
 
     fetch(url)
@@ -104,20 +145,26 @@ getAllNotes();
 document.getElementById('prevPage').addEventListener('click', function () {
     if (currentPage > 1) {
         currentPage--;
-        getAllNotes(searchInput.value.trim(), currentPage);
+        isPrevious = 1;
+
+        getAllNotes(searchInput.value.trim(), null, firstRecordId, isPrevious);
     }
 });
 
 document.getElementById('nextPage').addEventListener('click', function () {
+
     currentPage++;
-    getAllNotes(searchInput.value.trim(), currentPage);
+    isPrevious = 0;
+    getAllNotes(searchInput.value.trim(), lastRecordId, null, isPrevious);
+
 });
 
 // Search button click
 searchButton.addEventListener('click', function () {
     currentPage = 1;  // Reset to the first page on search
+    lastRecordId = null;  // Reset the last record ID on a new search
     const searchTerm = searchInput.value.trim();
-    getAllNotes(searchTerm, currentPage);
+    getAllNotes(searchTerm, lastRecordId);
 });
 
 

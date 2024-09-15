@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Notes_Application.Models.Data;
 using Notes_Application.Models.Entities;
 
@@ -15,11 +16,13 @@ namespace Notes_Application.Controllers
         {
             this.context = context;
         }
+
         [HttpGet]
-        public async Task<IActionResult> GetAllNotes(string? search, int pageNumber = 1, int pageSize = 8)
+        public async Task<IActionResult> GetAllNotes(string? search, string? lastRecordId, string? firstRecordId, int isPrevious, int pageSize = 5)
         {
             var notesQuery = context.Notes.AsQueryable();
 
+            // Filter by search term
             if (!string.IsNullOrEmpty(search))
             {
                 search = search.ToLower();
@@ -28,29 +31,71 @@ namespace Notes_Application.Controllers
                     n.Description.ToLower().Contains(search));
             }
 
-            var totalRecords = await notesQuery.CountAsync(); 
+            // Get total records before applying pagination
+            var totalRecords = await notesQuery.CountAsync();
+
+            if (!string.IsNullOrEmpty(lastRecordId) && isPrevious == 0)
+            {
+                if (Guid.TryParse(lastRecordId, out Guid parsedLastRecordId))
+                {
+                    notesQuery = notesQuery
+                        .Where(n => n.Id.CompareTo(parsedLastRecordId) > 0)
+                        .Take(pageSize); 
+                }
+                else
+                {
+                    return BadRequest("Invalid lastRecordId");
+                }
+            }
+            else if (!string.IsNullOrEmpty(firstRecordId) && isPrevious == 1)
+            {
+                if (Guid.TryParse(firstRecordId, out Guid parsedFirstRecordId))
+                {
+                    notesQuery = notesQuery
+                        .Where(n => n.Id.CompareTo(parsedFirstRecordId) < 0)
+                        .OrderByDescending(n => n.Id)
+                        .Take(pageSize);
+                
+                }
+                else
+                {
+                    return BadRequest("Invalid lastRecordId");
+                }
+            }
+
+            // Fetch the next set of records based on pageSize
             var paginatedNotes = await notesQuery
-                .Skip((pageNumber - 1) * pageSize) 
-                .Take(pageSize) 
-                .OrderByDescending(n => n.Id)
+                .OrderBy(n => n.Id)
+                .Take(pageSize)       // Fetch the next 'pageSize' number of records
                 .ToListAsync();
+
+            // Reverse the result if fetching previous data to display it in correct order
+            //if (isPrevious)
+            //{
+            //    paginatedNotes.Reverse();
+            //}
 
             return Ok(new
             {
+                data = paginatedNotes,
                 totalRecords,
-                pageNumber,
-                pageSize,
-                data = paginatedNotes
+                pageSize
             });
         }
 
 
-        [HttpGet]
-        [Route("{id:Guid}")]
+
+        [HttpGet("{id}")]
+       // [Route("{id:Guid}")]
         //[ActionName("GetNoteById")]
-        public async Task<IActionResult> GetNoteById([FromRoute] Guid id)
+        public async Task<IActionResult> GetNoteById([FromRoute] string id)
         {
-            var data = await context.Notes.FindAsync(id);
+            // Convert id from string to Guid
+            if (!Guid.TryParse(id, out Guid noteId))
+            {
+                return BadRequest("Invalid note ID");
+            }
+            var data = await context.Notes.FindAsync(noteId);
             if (data == null) return NotFound();
             return Ok(data);
         }
@@ -62,15 +107,20 @@ namespace Notes_Application.Controllers
                 note.Id = Guid.NewGuid();
                 await context.AddAsync(note);
                 await context.SaveChangesAsync();
-                return CreatedAtAction(nameof(GetNoteById), new { id = note.Id }, note);
+                return CreatedAtAction(nameof(GetNoteById), new { id = note.Id.ToString() }, note);
             }
             return BadRequest();
         }
-        [HttpPut]
-        [Route("{id:Guid}")]
-        public async Task<IActionResult> UpdateNote([FromRoute] Guid id, [FromBody] Note updatedNote)
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateNote([FromRoute] string id, [FromBody] Note updatedNote)
         {
-            var data = await context.Notes.FindAsync(id);
+            if (!Guid.TryParse(id, out Guid noteId))
+            {
+                return BadRequest("Invalid note ID");
+            }
+
+            var data = await context.Notes.FindAsync(noteId);
             if (data == null) return NotFound();
 
             if(!ModelState.IsValid || updatedNote == null) return BadRequest();
@@ -82,11 +132,17 @@ namespace Notes_Application.Controllers
 
             return Ok(data);
         }
-        [HttpDelete]
-        [Route("{id:Guid}")]
-        public async Task<IActionResult> DeleteNote([FromRoute] Guid id)
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteNote([FromRoute] string id)
         {
-            var data = await context.Notes.FindAsync(id);
+            // Convert id from string to Guid
+            if (!Guid.TryParse(id, out Guid noteId))
+            {
+                return BadRequest("Invalid note ID");
+            }
+
+            var data = await context.Notes.FindAsync(noteId);
             if(data == null)return NotFound();
 
             context.Notes.Remove(data);

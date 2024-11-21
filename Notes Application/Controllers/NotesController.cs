@@ -15,9 +15,7 @@ public class NotesController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAllNotes(string? search, int pageNumber = 1, int pageSize = 8)
     {
-
         var result = await _notesService.GetAllNotesAsync(search, pageNumber, pageSize);
-
 
         return Ok(new
         {
@@ -28,8 +26,8 @@ public class NotesController : ControllerBase
         });
     }
 
-    [HttpGet("{id:Guid}")]
-    public async Task<IActionResult> GetNoteById([FromRoute] Guid id)
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetNoteById(string id)
     {
         var note = await _notesService.GetNoteByIdAsync(id);
         if (note == null) return NotFound();
@@ -39,34 +37,33 @@ public class NotesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddNote(Note note)
     {
-        if (!ModelState.IsValid || string.IsNullOrWhiteSpace(note.Title) || string.IsNullOrWhiteSpace(note.Description))
-            return BadRequest();
+        if (ModelState.IsValid) 
+        {
+            await _notesService.AddNoteAsync(note);
 
-        await _notesService.AddNoteAsync(note);
-        return CreatedAtAction(nameof(GetNoteById), new { id = note.Id }, note);
+            return CreatedAtAction(nameof(GetNoteById), new { id = note.Id }, note);
+        }
+
+        return BadRequest(); 
     }
 
-    [HttpPut("{id:Guid}")]
-    public async Task<IActionResult> UpdateNote([FromRoute] Guid id, [FromBody] Note updatedNote)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateNote(string id, [FromBody] Note updatedNote)
     {
         var existingNote = await _notesService.GetNoteByIdAsync(id);
-        if (existingNote == null) return NotFound();
 
-        existingNote.Title = updatedNote.Title;
-        existingNote.Description = updatedNote.Description;
-        existingNote.IsVisible = updatedNote.IsVisible;
+        await _notesService.UpdateNoteAsync(existingNote, updatedNote);
 
-        await _notesService.UpdateNoteAsync(existingNote);
         return Ok(existingNote);
     }
 
-    [HttpDelete("{id:Guid}")]
-    public async Task<IActionResult> DeleteNote([FromRoute] Guid id)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteNote(string id)
     {
         var note = await _notesService.GetNoteByIdAsync(id);
-        if (note == null) return NotFound();
 
         await _notesService.DeleteNoteAsync(id);
+
         return Ok();
     }
 }

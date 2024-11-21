@@ -17,9 +17,10 @@ public class Repository<T> : IRepository<T> where T : class
         return await _dbSet.ToListAsync();
     }
 
-    public async Task<T> GetByIdAsync(Guid id)
+    public async Task<T> GetByIdAsync(string id)
     {
-        return await _dbSet.FindAsync(id);
+        Guid Id = Guid.Parse(id);
+        return await _dbSet.FindAsync(Id);
     }
 
     public async Task AddAsync(T entity)
@@ -34,7 +35,7 @@ public class Repository<T> : IRepository<T> where T : class
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(Guid id)
+    public async Task DeleteAsync(string id)
     {
         var entity = await GetByIdAsync(id);
         if (entity != null)
@@ -44,8 +45,8 @@ public class Repository<T> : IRepository<T> where T : class
         }
     }
 
-    public async Task<int> CountAsync()
-    {
-        return await _dbSet.CountAsync();
-    }
+    //public async Task<int> CountAsync()
+    //{
+    //    return await _dbSet.CountAsync();
+    //}
 }

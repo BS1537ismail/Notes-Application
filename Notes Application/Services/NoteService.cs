@@ -1,15 +1,10 @@
-﻿using Notes_Application.Models.Entities;
-
-public class NoteService : INoteService
+﻿using Nest;
+using Notes_Application.Models.Entities;
+public class NoteService(IRepository<Note> noteRepository, IElasticClient elasticClient) : INoteService
 {
-    private readonly IRepository<Note> _noteRepository;
+    private readonly IRepository<Note> _noteRepository = noteRepository;
 
-    public NoteService(IRepository<Note> noteRepository)
-    {
-        _noteRepository = noteRepository;
-    }
-
-    public async Task<dynamic> GetAllNotesAsync(string search, int pageNumber, int pageSize)
+    public async Task<dynamic> GetAllNotesAsync(string? search, int pageNumber, int pageSize)
     {
         var notesQuery = await _noteRepository.GetAllAsync();
         var totalRecords = notesQuery.Count();
@@ -33,8 +28,7 @@ public class NoteService : INoteService
             TotalRecords = totalRecords
         };
     }
-
-    public async Task<Note> GetNoteByIdAsync(Guid id)
+    public async Task<Note> GetNoteByIdAsync(string id)
     {
         return await _noteRepository.GetByIdAsync(id);
     }
@@ -45,18 +39,21 @@ public class NoteService : INoteService
         await _noteRepository.AddAsync(note);
     }
 
-    public async Task UpdateNoteAsync(Note note)
+    public async Task UpdateNoteAsync(Note note, Note updatedNote)
     {
+        note.Title = updatedNote.Title;
+        note.Description = updatedNote.Description;
+        note.IsVisible = updatedNote.IsVisible;
         await _noteRepository.UpdateAsync(note);
     }
 
-    public async Task DeleteNoteAsync(Guid id)
+    public async Task DeleteNoteAsync(string id)
     {
         await _noteRepository.DeleteAsync(id);
     }
 
-    public Task<int> GetTotalRecord()
-    {
-        return _noteRepository.CountAsync();
-    }
+    //public Task<int> GetTotalRecord()
+    //{
+    //    return _noteRepository.CountAsync();
+    //}
 }

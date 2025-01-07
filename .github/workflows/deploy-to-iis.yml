@@ -1,0 +1,41 @@
+name: Build Notes Application for IIS Deployment
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to the main branch
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # Step 1: Check out the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up .NET
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0'  # Use your .NET version
+
+      # Step 3: Restore dependencies
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # Step 4: Build the application
+      - name: Build application
+        run: dotnet build --configuration Release
+
+      # Step 5: Publish the application
+      - name: Publish for IIS
+        run: dotnet publish -c Release -o ./output
+
+      # Step 6: Upload build artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: NotesApplication
+          path: ./output
